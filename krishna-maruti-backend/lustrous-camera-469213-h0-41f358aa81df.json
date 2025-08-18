@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "lustrous-camera-469213-h0",
+  "private_key_id": "41f358aa81df13e9c2889941f0fa4ea408e264b1",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCtWw9DaEhzhNM4\nMWNGcfyeBlWgrixtdBC9cOnEMUd4wyezFDdIUvHrTRs8jW/Y7/zSWwOZYlaXx3tw\nIyVc+S1z/Qr2LJpfueS3884kmExISDFsSjrv0OBYTMwiDQIIj+6nwKWCFN2hlO/a\nOW4z7QmmtjM/J9mxQX75Cb6GC6hTB8o7UK8Czfi/zZKNlx9FQxee2yNh3Nj/tJxN\nnqOzFxd44wrz+Xvsb9naU7H2ZGFSVIMoSLnkprE1jmC7AmFFPwGbwcOOgUkwkK+i\nJN90yCUvjEKqZhLtOhtRthtdBFX6YTbXq45pijGKs9iumtFwTPUUfQXNKDmsuGOF\nDxs6xi1FAgMBAAECggEAI3PPrYqmZH+JvcB168p0bfHgMZ3lJpY5tTBiElY8pmEM\n3aX4/1C9OlCYzRukv9Imm3NzCzuN93jbkO2THs4zwjiB9SHeiUyoToltA1VlJlQj\nTWDp6DEIrG46Qg10eMFMvqBaiL2RLNIbcj7T/4kOs/onhVc2QTaii7Y3MU0xhZcn\neLPt8TQO+BAnfspu1bjlG06flrh2UrjOOVE72+scvKbZA5rQKxcdgpr+Hq45uBxY\nJoV9jLH3ZG49XMiwhbVxxThB9kZ4aI32twhEQPh4aw+1j4BEaDqjmvX4TJOG5u6X\ntOPrzDZlrIj5JEFyDENxOGuwfiOg16RaantCPyv2qQKBgQDypvH5pwcFRDUyqU9c\n1I5uQ9Rflw1MiYQGIttuMb5gBPPW0L7TsOZhxiFu3a49BDoIfrcml7ARX1/EWU5V\n0C0hEbyeT/r4aKFVxZE1QVyCmIM5S9p6LHG267jOPHh/k1aB2q4Y6qRnm5KlUPPf\n4J/cYo65GsUorMxvHRTHKgWiSQKBgQC25EY1jdvadqj+56hfXhLQ9OuFFVNollpI\nvZbeU9DuvAEDAwsQGm4oelYl0lVrI0sIVXJ1j/Lfy/1Jof/jIOANvz0N2t+iw8/K\nsE6Ntm6B0U3L2ODL5k9Jy0/L4KdGn7Qnqd3lf7I0hDnQKG54xl2zVfVoGsiWEqkP\nBWufrlxzHQKBgQCkmWp7FzpD8EjF3OPg7K7RTWG6lhSHXqEYKH0A+u1Q5QsjJObN\nYqpkmKoFMosHCN709D/5BdyBbFjiMFJbE6QJUqbIHSj5aMBIFoSxw2ylih85tqK1\nTYC1vKDYBV0X7TI5U8XVURXE0ltfmNJVg2HtdU2rcuVa+hyTIv79OxwnQQKBgFYT\nQWfbB+ndhtPRO1EG+VwWqPHNg5/pgzxQ3jxsvhxdpyw/tmkxxz6NtRW/1CvERH/7\nlw71XJ0vaFnLQJ8ozcoqgxWOOUplVdpS9+WCQqgeVbrmq4XLMu3MHhYZ+SAn8aXp\nMGHeo4RL5tms7bExys+oWQNR962Jwr8rEefpK+GRAoGAFCJ3iEZMv1sjhQe7qwJU\n/8LBRAp2VLjBts8TNRYyw18ft+4JsNfDVpU8HylQEBw1/KREKKIs7h8OYR+1vjim\nlvl+k4uz9iCk+uHoqGX8x62LZM7k08TIbCyCkUNzcOrPFvVWpkwtEdRUb1UopdYD\nhYiHfhARBO12YgO/7OHDHwA=\n-----END PRIVATE KEY-----\n",
+  "client_email": "krisha@lustrous-camera-469213-h0.iam.gserviceaccount.com",
+  "client_id": "101405599895601277748",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/krisha%40lustrous-camera-469213-h0.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
