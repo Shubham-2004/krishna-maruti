@@ -10,6 +10,8 @@
 /node_modules
 npm-debug.log
 yarn-error.log
+/krishna-maruti-backend/node_modules
+/krishna-maruti-backend/b.json
 
 # IDEs and editors
 .idea/

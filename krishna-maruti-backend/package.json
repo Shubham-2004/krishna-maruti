@@ -1,0 +1,18 @@
+{
+  "name": "krishna-maruti-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Krishna Maruti Test Dashboard",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "googleapis": "^126.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
