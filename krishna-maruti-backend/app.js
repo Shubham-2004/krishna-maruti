@@ -9,11 +9,9 @@ const PORT = process.env.PORT || 3000;
 // Production URL for Render deployment
 const RENDER_URL = 'https://krishna-maruti-backend.onrender.com';
 
-// Enhanced CORS Configuration - Updated for Render deployment
+// Production-only CORS Configuration - Optimized for Render
 app.use(cors({
   origin: [
-    'http://localhost:4200',
-    'http://localhost:3000',
     'https://krishna-maruti.vercel.app',  // Production Vercel domain
     'https://krishna-maruti-*.vercel.app', // Preview deployments
     /^https:\/\/krishna-maruti.*\.vercel\.app$/, // Regex for all Vercel subdomains
@@ -25,17 +23,15 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Enhanced CORS middleware for Render deployment
+// Production-only CORS middleware for Render deployment
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowedOrigins = [
-    'http://localhost:4200',
-    'http://localhost:3000',
     'https://krishna-maruti.vercel.app',
     'https://krishna-maruti-backend.onrender.com'
   ];
   
-  // Allow all Vercel preview deployments
+  // Allow all Vercel deployments and Render self-reference
   if (allowedOrigins.includes(origin) || 
       /^https:\/\/krishna-maruti.*\.vercel\.app$/.test(origin) ||
       /^https:\/\/krishna-maruti-backend.*\.onrender\.com$/.test(origin)) {
@@ -58,7 +54,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Request logging middleware for production debugging
+// Production logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'None'}`);
@@ -73,12 +69,12 @@ const SHEET_GID = '1666091753';
 let CORRECT_ANSWERS = [];
 let QUESTIONS = [];
 
-// Enhanced caching system for Render deployment
+// Production caching system optimized for Render
 let CACHED_DATA = null;
 let CACHE_TIMESTAMP = null;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache for production
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache for production
 
-// Comprehensive fallback data
+// Comprehensive fallback data for production reliability
 const FALLBACK_DATA = [
   ["Timestamp","Score","Full Name","Employee ID","Date of Birth (DD/MM/YYYY)","Department","1. Which law states that stress is proportional to strain within the elastic limit?","2. Which type of gear is used to transmit motion between intersecting shafts?","3. Which cycle is used in IC engines?","4. Unit of Power is?","5. The hardness test performed using diamond pyramid is called?","6. Which of the following is NOT a welding process?","7. In thermodynamics, the SI unit of entropy is?","8. Which metal is commonly used in aircraft manufacturing?","9. Which of the following is a non-destructive testing method?","10. The process of cooling a material rapidly to increase hardness is?"],
   ["8/16/2025 14:10:59","","Shubham Kumar","123","12/2/1995","IT","Hooke's Law","Bevel Gear","Otto Cycle","Watt","Vickers","CNC","J/K","Aluminium","X-Ray Inspection","Quenching"],
@@ -87,22 +83,27 @@ const FALLBACK_DATA = [
   ["8/18/2025 11:20:45","","Amit Patel","101","15/03/1988","Production","Hooke's Law","Spur Gear","Otto Cycle","Watt","Brinell","MIG","J/K","Steel","Ultrasonic Testing","Tempering"],
   ["8/18/2025 15:35:12","","Neha Gupta","202","22/07/1993","Quality","Hooke's Law","Bevel Gear","Diesel Cycle","Watt","Vickers","Brazing","J/K","Aluminium","Magnetic Particle","Quenching"],
   ["8/18/2025 16:45:30","","Rahul Verma","303","10/11/1991","Design","Hooke's Law","Helical Gear","Otto Cycle","Watt","Rockwell","Arc","J/K","Titanium","Radiographic","Annealing"],
-  ["8/19/2025 09:12:15","","Kavya Nair","404","18/09/1994","Testing","Hooke's Law","Bevel Gear","Brayton Cycle","Watt","Vickers","Soldering","J/K","Aluminium","Penetrant","Quenching"]
+  ["8/19/2025 09:12:15","","Kavya Nair","404","18/09/1994","Testing","Hooke's Law","Bevel Gear","Brayton Cycle","Watt","Vickers","Soldering","J/K","Aluminium","Penetrant","Quenching"],
+  ["8/19/2025 14:30:22","","Manoj Singh","505","08/12/1987","Maintenance","Hooke's Law","Worm Gear","Otto Cycle","Watt","Vickers","Forging","J/K","Steel","Visual Inspection","Quenching"],
+  ["8/20/2025 10:45:18","","Anita Desai","606","19/06/1995","R&D","Hooke's Law","Bevel Gear","Stirling Cycle","Watt","Brinell","Casting","J/K","Aluminium","Dye Penetrant","Hardening"]
 ];
 
-// Enhanced health check with Render-specific information
+// Production health check endpoint
 app.get('/api/health', (req, res) => {
   const healthData = {
     success: true,
-    message: 'Krishna Maruti Backend API is running on Render',
+    message: 'Krishna Maruti Backend API - Production Ready on Render',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    version: '3.0.0',
-    environment: process.env.NODE_ENV || 'development',
+    version: '4.0.0-production',
+    environment: 'production',
     renderUrl: RENDER_URL,
-    memoryUsage: process.memoryUsage(),
+    memoryUsage: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+    },
     config: {
-      method: 'Render-Optimized CSV with Enhanced CORS',
+      method: 'Production Render-Optimized CSV API',
       sheetId: SHEET_ID,
       sheetGid: SHEET_GID,
       questionsLoaded: QUESTIONS.length,
@@ -113,7 +114,7 @@ app.get('/api/health', (req, res) => {
     }
   };
   
-  // Set cache headers for health check
+  // Production cache headers
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -121,7 +122,7 @@ app.get('/api/health', (req, res) => {
   res.json(healthData);
 });
 
-// Enhanced keep-alive endpoint
+// Production keep-alive endpoint
 app.get('/api/ping', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.json({ 
@@ -130,31 +131,32 @@ app.get('/api/ping', (req, res) => {
     uptime: Math.floor(process.uptime()),
     renderUrl: RENDER_URL,
     service: 'Krishna Maruti Backend',
-    version: '3.0.0'
+    version: '4.0.0-production',
+    mode: 'production-only'
   });
 });
 
-// Cache validation with enhanced logging
+// Production cache validation
 function isCacheValid() {
   const isValid = CACHED_DATA && CACHE_TIMESTAMP && (Date.now() - CACHE_TIMESTAMP < CACHE_DURATION);
   if (isValid) {
-    console.log(`✅ Cache hit - Age: ${Math.floor((Date.now() - CACHE_TIMESTAMP) / 1000)}s`);
+    console.log(`✅ Production cache hit - Age: ${Math.floor((Date.now() - CACHE_TIMESTAMP) / 1000)}s`);
   } else {
-    console.log('⚠️ Cache miss - Fetching fresh data');
+    console.log('⚠️ Production cache miss - Fetching fresh data');
   }
   return isValid;
 }
 
-// Enhanced data fetching with better error handling for Render
+// Production-optimized data fetching from Google Sheets
 async function fetchDataFromCSV() {
-  console.log('📥 Fetching data from Google Sheets via Render...');
+  console.log('📥 Production: Fetching data from Google Sheets via Render...');
   console.log('📊 Sheet ID:', SHEET_ID);
   console.log('🏷️ Sheet GID:', SHEET_GID);
   console.log('🌐 Render URL:', RENDER_URL);
   
-  // Check cache first
+  // Check production cache first
   if (isCacheValid()) {
-    console.log('✅ Using cached data to improve performance');
+    console.log('✅ Using production cached data for optimal performance');
     return CACHED_DATA;
   }
   
@@ -165,33 +167,33 @@ async function fetchDataFromCSV() {
     `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`,
   ];
   
-  // Dynamic import for node-fetch with fallback
+  // Production fetch with dynamic import
   let fetch;
   try {
     fetch = (await import('node-fetch')).default;
-    console.log('✅ node-fetch imported successfully');
+    console.log('✅ Production node-fetch imported successfully');
   } catch (error) {
-    console.log('❌ node-fetch not available, using fallback data');
+    console.log('❌ Production: node-fetch not available, using enhanced fallback data');
     CACHED_DATA = FALLBACK_DATA;
     CACHE_TIMESTAMP = Date.now();
     return FALLBACK_DATA;
   }
   
-  // Try each URL method with optimized timeouts for Render
+  // Production-optimized fetching with longer timeouts
   for (let i = 0; i < csvUrls.length; i++) {
     try {
-      console.log(`🔗 Attempt ${i + 1}/${csvUrls.length}: ${csvUrls[i]}`);
+      console.log(`🔗 Production attempt ${i + 1}/${csvUrls.length}: ${csvUrls[i]}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.log(`⏰ Request ${i + 1} timed out after 15 seconds`);
-      }, 15000); // 15 second timeout for Render
+        console.log(`⏰ Production request ${i + 1} timed out after 20 seconds`);
+      }, 20000); // 20 second timeout for production
       
       const startTime = Date.now();
       const response = await fetch(csvUrls[i], {
         headers: {
-          'User-Agent': 'Krishna-Maruti-Backend/3.0.0 (Render)',
+          'User-Agent': 'Krishna-Maruti-Production-Backend/4.0.0 (Render)',
           'Accept': 'text/csv,application/csv,text/plain,*/*',
           'Accept-Language': 'en-US,en;q=0.9',
           'Cache-Control': 'no-cache',
@@ -203,51 +205,51 @@ async function fetchDataFromCSV() {
       clearTimeout(timeoutId);
       const requestTime = Date.now() - startTime;
       
-      console.log(`📊 Response ${i + 1}: ${response.status} ${response.statusText} (${requestTime}ms)`);
+      console.log(`📊 Production response ${i + 1}: ${response.status} ${response.statusText} (${requestTime}ms)`);
       
       if (response.ok) {
         const csvData = await response.text();
-        console.log(`📄 CSV data received: ${csvData.length} characters`);
+        console.log(`📄 Production CSV data received: ${csvData.length} characters`);
         
         if (csvData && csvData.length > 100 && !csvData.includes('<!DOCTYPE html')) {
           const rows = parseCSV(csvData);
-          console.log(`✅ Successfully parsed ${rows.length} rows from attempt ${i + 1}`);
+          console.log(`✅ Production: Successfully parsed ${rows.length} rows from attempt ${i + 1}`);
           
           if (rows.length > 1) {
-            // Cache the successful result
+            // Cache the successful result for production
             CACHED_DATA = rows;
             CACHE_TIMESTAMP = Date.now();
-            console.log('💾 Data cached successfully for 10 minutes');
+            console.log('💾 Production data cached successfully for 15 minutes');
             return rows;
           }
         } else {
-          console.log(`⚠️ Invalid CSV data received (length: ${csvData.length})`);
+          console.log(`⚠️ Production: Invalid CSV data received (length: ${csvData.length})`);
         }
       } else {
-        console.log(`❌ Request ${i + 1} failed: ${response.status} ${response.statusText}`);
+        console.log(`❌ Production request ${i + 1} failed: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log(`⏰ Request ${i + 1} was aborted due to timeout`);
+        console.log(`⏰ Production request ${i + 1} was aborted due to timeout`);
       } else {
-        console.log(`❌ Request ${i + 1} error: ${error.message}`);
+        console.log(`❌ Production request ${i + 1} error: ${error.message}`);
       }
     }
   }
   
-  // If all methods fail, use fallback data
-  console.log('⚠️ All CSV fetch attempts failed, using enhanced fallback data');
+  // Production fallback
+  console.log('⚠️ Production: All CSV fetch attempts failed, using enhanced fallback data');
   CACHED_DATA = FALLBACK_DATA;
   CACHE_TIMESTAMP = Date.now();
   return FALLBACK_DATA;
 }
 
-// Enhanced CSV parsing with better error handling
+// Production CSV parsing
 function parseCSV(csvData) {
   try {
-    console.log('🔍 Starting CSV parsing...');
+    console.log('🔍 Production: Starting CSV parsing...');
     const lines = csvData.split('\n').filter(line => line.trim());
-    console.log(`📝 Processing ${lines.length} lines after filtering`);
+    console.log(`📝 Production: Processing ${lines.length} lines after filtering`);
     
     const rows = [];
     let parsedLines = 0;
@@ -288,35 +290,35 @@ function parseCSV(csvData) {
         parsedLines++;
         
         if (lineIndex === 0) {
-          console.log('📋 Header row:', row.slice(0, 6).join(' | '));
+          console.log('📋 Production header row:', row.slice(0, 6).join(' | '));
         } else if (lineIndex === 1) {
-          console.log('👤 First employee:', row.slice(2, 6).join(' | '));
+          console.log('👤 Production first employee:', row.slice(2, 6).join(' | '));
         }
       } else if (lineIndex > 0) {
-        console.log(`⚠️ Skipping line ${lineIndex + 1} - only ${row.length} columns`);
+        console.log(`⚠️ Production: Skipping line ${lineIndex + 1} - only ${row.length} columns`);
       }
     }
     
-    console.log(`✅ CSV parsing completed: ${parsedLines} valid rows from ${lines.length} lines`);
+    console.log(`✅ Production CSV parsing completed: ${parsedLines} valid rows from ${lines.length} lines`);
     return rows;
     
   } catch (error) {
-    console.error('❌ CSV parsing error:', error);
-    throw new Error(`Failed to parse CSV data: ${error.message}`);
+    console.error('❌ Production CSV parsing error:', error);
+    throw new Error(`Production CSV parsing failed: ${error.message}`);
   }
 }
 
-// Enhanced initialization with better logging
+// Production initialization
 function initializeCorrectAnswers(rows) {
   if (!rows || rows.length < 2) {
-    console.log('⚠️ Insufficient data for initialization - need header + at least 1 data row');
+    console.log('⚠️ Production: Insufficient data for initialization - need header + at least 1 data row');
     return false;
   }
   
   const headerRow = rows[0];
   const firstEmployeeRow = rows[1];
   
-  console.log('📋 Initializing from data:');
+  console.log('📋 Production: Initializing from data:');
   console.log(`   Header columns: ${headerRow.length}`);
   console.log(`   First employee: ${firstEmployeeRow[2]} (${firstEmployeeRow[3]})`);
   
@@ -331,14 +333,14 @@ function initializeCorrectAnswers(rows) {
   // Extract correct answers from first employee
   CORRECT_ANSWERS = firstEmployeeRow.slice(questionStartCol, questionStartCol + maxQuestions).map(answer => answer?.trim() || '');
   
-  console.log('✅ Initialization completed:');
+  console.log('✅ Production initialization completed:');
   console.log(`   📝 Questions loaded: ${QUESTIONS.length}`);
   console.log(`   ✔️ Correct answers loaded: ${CORRECT_ANSWERS.length}`);
   console.log(`   👨‍💼 Reference employee: ${firstEmployeeRow[2]} (ID: ${firstEmployeeRow[3]})`);
   
-  // Log sample Q&A for verification
+  // Production sample Q&A logging
   if (QUESTIONS.length > 0) {
-    console.log('🔍 Sample Questions & Answers:');
+    console.log('🔍 Production sample Questions & Answers:');
     for (let i = 0; i < Math.min(3, QUESTIONS.length); i++) {
       const shortQ = QUESTIONS[i].length > 50 ? QUESTIONS[i].substring(0, 50) + '...' : QUESTIONS[i];
       console.log(`   Q${i + 1}: ${shortQ} → ${CORRECT_ANSWERS[i]}`);
@@ -348,7 +350,7 @@ function initializeCorrectAnswers(rows) {
   return QUESTIONS.length > 0 && CORRECT_ANSWERS.length > 0;
 }
 
-// Rest of the functions remain the same but with enhanced logging...
+// Production answer validation
 function isAnswerCorrect(userAnswer, questionIndex) {
   if (questionIndex >= CORRECT_ANSWERS.length || !userAnswer) return false;
   
@@ -358,6 +360,7 @@ function isAnswerCorrect(userAnswer, questionIndex) {
   return normalizedUserAnswer === normalizedCorrectAnswer;
 }
 
+// Production response mapping
 function mapRowToTestResponse(row, isFirstEmployee = false) {
   if (!row || row.length < 6) {
     return null;
@@ -409,17 +412,18 @@ function mapRowToTestResponse(row, isFirstEmployee = false) {
   };
 }
 
+// Production data processing
 function processSheetData(rows) {
   if (!rows || rows.length <= 1) {
-    console.log('⚠️ No data rows available for processing');
+    console.log('⚠️ Production: No data rows available for processing');
     return [];
   }
   
-  console.log(`🔄 Processing ${rows.length} total rows (including header)`);
+  console.log(`🔄 Production: Processing ${rows.length} total rows (including header)`);
   
   const initialized = initializeCorrectAnswers(rows);
   if (!initialized) {
-    console.log('❌ Failed to initialize - cannot process data');
+    console.log('❌ Production: Failed to initialize - cannot process data');
     return [];
   }
   
@@ -433,21 +437,21 @@ function processSheetData(rows) {
     
     if (testResponse) {
       testResponses.push(testResponse);
-      if (i < 3) { // Log first 3 for debugging
+      if (i < 3) { // Log first 3 for production debugging
         console.log(`   👤 ${testResponse.fullName}: ${testResponse.score}/${QUESTIONS.length} (${testResponse.department})`);
       }
     }
   }
   
-  console.log(`✅ Successfully processed ${testResponses.length}/${dataRows.length} employee responses`);
+  console.log(`✅ Production: Successfully processed ${testResponses.length}/${dataRows.length} employee responses`);
   return testResponses;
 }
 
-// API Endpoints with enhanced error handling and logging
+// Production API Endpoints
 
 app.get('/api/test-connection', async (req, res) => {
   try {
-    console.log('🧪 Testing connection from Render deployment...');
+    console.log('🧪 Production: Testing connection from Render deployment...');
     const startTime = Date.now();
     
     const rows = await fetchDataFromCSV();
@@ -457,10 +461,10 @@ app.get('/api/test-connection', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Connection successful from Render',
+      message: 'Production connection successful from Render',
       responseTime: `${responseTime}ms`,
       details: {
-        method: 'Render-Optimized CSV with Enhanced CORS',
+        method: 'Production Render-Optimized CSV API',
         renderUrl: RENDER_URL,
         sheetId: SHEET_ID,
         sheetGid: SHEET_GID,
@@ -478,10 +482,10 @@ app.get('/api/test-connection', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Connection test failed:', error);
+    console.error('❌ Production connection test failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Connection test failed',
+      error: 'Production connection test failed',
       message: error.message,
       renderUrl: RENDER_URL,
       timestamp: new Date().toISOString(),
@@ -495,7 +499,7 @@ app.get('/api/test-connection', async (req, res) => {
 
 app.get('/api/test-responses', async (req, res) => {
   try {
-    console.log('📊 Fetching test responses via Render...');
+    console.log('📊 Production: Fetching test responses via Render...');
     const startTime = Date.now();
     
     const rows = await fetchDataFromCSV();
@@ -511,7 +515,7 @@ app.get('/api/test-responses', async (req, res) => {
       timestamp: new Date().toISOString(),
       cacheStatus: isCacheValid() ? 'Hit' : 'Miss',
       metadata: {
-        method: 'Render-Optimized CSV',
+        method: 'Production Render-Optimized CSV',
         renderUrl: RENDER_URL,
         sheetId: SHEET_ID,
         sheetGid: SHEET_GID,
@@ -525,10 +529,10 @@ app.get('/api/test-responses', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching test responses:', error);
+    console.error('❌ Production error fetching test responses:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch test responses',
+      error: 'Production failed to fetch test responses',
       message: error.message,
       renderUrl: RENDER_URL,
       timestamp: new Date().toISOString()
@@ -538,7 +542,7 @@ app.get('/api/test-responses', async (req, res) => {
 
 app.get('/api/dashboard-stats', async (req, res) => {
   try {
-    console.log('📈 Generating dashboard statistics via Render...');
+    console.log('📈 Production: Generating dashboard statistics via Render...');
     const startTime = Date.now();
     
     const rows = await fetchDataFromCSV();
@@ -560,21 +564,21 @@ app.get('/api/dashboard-stats', async (req, res) => {
             renderUrl: RENDER_URL,
             sheetId: SHEET_ID,
             sheetGid: SHEET_GID,
-            message: 'No data available',
+            message: 'No production data available',
             cacheStatus: 'Empty'
           }
         }
       });
     }
 
-    // Calculate comprehensive statistics
+    // Production statistics calculation
     const totalResponses = testResponses.length;
     const passedCount = testResponses.filter(r => r.score >= 6).length;
     const failedCount = totalResponses - passedCount;
     const averageScore = testResponses.reduce((sum, r) => sum + r.score, 0) / totalResponses;
     const departments = [...new Set(testResponses.map(r => r.department).filter(d => d))];
 
-    // Department statistics
+    // Production department statistics
     const departmentStats = departments.map(dept => {
       const deptResponses = testResponses.filter(r => r.department === dept);
       const deptPassed = deptResponses.filter(r => r.score >= 6).length;
@@ -603,7 +607,7 @@ app.get('/api/dashboard-stats', async (req, res) => {
       responses: testResponses,
       referenceEmployee: testResponses[0],
       metadata: {
-        method: 'Render-Optimized Dashboard',
+        method: 'Production Render-Optimized Dashboard',
         renderUrl: RENDER_URL,
         responseTime: `${responseTime}ms`,
         sheetId: SHEET_ID,
@@ -619,7 +623,7 @@ app.get('/api/dashboard-stats', async (req, res) => {
       }
     };
 
-    console.log(`📊 Dashboard stats generated in ${responseTime}ms:`, {
+    console.log(`📊 Production dashboard stats generated in ${responseTime}ms:`, {
       totalResponses: stats.totalResponses,
       passedCount: stats.passedCount,
       departments: stats.departments.length,
@@ -632,10 +636,10 @@ app.get('/api/dashboard-stats', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error generating dashboard stats:', error);
+    console.error('❌ Production error generating dashboard stats:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate dashboard statistics',
+      error: 'Production failed to generate dashboard statistics',
       message: error.message,
       renderUrl: RENDER_URL,
       timestamp: new Date().toISOString()
@@ -645,11 +649,11 @@ app.get('/api/dashboard-stats', async (req, res) => {
 
 app.get('/api/questions', async (req, res) => {
   try {
-    console.log('📚 Loading questions via Render...');
+    console.log('📚 Production: Loading questions via Render...');
     
-    // Ensure data is loaded
+    // Ensure production data is loaded
     if (QUESTIONS.length === 0 || CORRECT_ANSWERS.length === 0) {
-      console.log('📚 Questions not loaded, fetching from sheet...');
+      console.log('📚 Production: Questions not loaded, fetching from sheet...');
       const rows = await fetchDataFromCSV();
       initializeCorrectAnswers(rows);
     }
@@ -660,8 +664,8 @@ app.get('/api/questions', async (req, res) => {
         questions: QUESTIONS,
         correctAnswers: CORRECT_ANSWERS,
         totalQuestions: QUESTIONS.length,
-        source: 'Dynamically loaded from Google Sheets via Render',
-        referenceNote: 'Questions from header row, correct answers from first employee',
+        source: 'Production: Dynamically loaded from Google Sheets via Render',
+        referenceNote: 'Production: Questions from header row, correct answers from first employee',
         cacheStatus: isCacheValid() ? 'Hit' : 'Miss',
         config: {
           renderUrl: RENDER_URL,
@@ -672,10 +676,10 @@ app.get('/api/questions', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error loading questions:', error);
+    console.error('❌ Production error loading questions:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to load questions',
+      error: 'Production failed to load questions',
       message: error.message,
       renderUrl: RENDER_URL
     });
@@ -685,7 +689,7 @@ app.get('/api/questions', async (req, res) => {
 app.get('/api/response/:employeeId', async (req, res) => {
   try {
     const employeeId = req.params.employeeId;
-    console.log('🔍 Fetching employee details via Render:', employeeId);
+    console.log('🔍 Production: Fetching employee details via Render:', employeeId);
     
     const rows = await fetchDataFromCSV();
     const testResponses = processSheetData(rows);
@@ -694,7 +698,7 @@ app.get('/api/response/:employeeId', async (req, res) => {
     if (!targetResponse) {
       return res.status(404).json({
         success: false,
-        message: `Employee with ID '${employeeId}' not found`,
+        message: `Production: Employee with ID '${employeeId}' not found`,
         renderUrl: RENDER_URL,
         availableEmployees: testResponses.map(r => ({
           id: r.employeeId,
@@ -735,10 +739,10 @@ app.get('/api/response/:employeeId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching employee data:', error);
+    console.error('❌ Production error fetching employee data:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch employee data',
+      error: 'Production failed to fetch employee data',
       message: error.message,
       renderUrl: RENDER_URL
     });
@@ -747,7 +751,7 @@ app.get('/api/response/:employeeId', async (req, res) => {
 
 app.get('/api/debug/raw-data', async (req, res) => {
   try {
-    console.log('🔍 Debug: Fetching raw data via Render...');
+    console.log('🔍 Production debug: Fetching raw data via Render...');
     
     const rows = await fetchDataFromCSV();
     
@@ -755,9 +759,9 @@ app.get('/api/debug/raw-data', async (req, res) => {
       success: true,
       debug: true,
       data: {
-        method: 'Render-Optimized CSV Debug',
+        method: 'Production Render-Optimized CSV Debug',
         renderUrl: RENDER_URL,
-        environment: process.env.NODE_ENV || 'development',
+        environment: 'production',
         sheetId: SHEET_ID,
         sheetGid: SHEET_GID,
         totalRows: rows.length,
@@ -769,7 +773,10 @@ app.get('/api/debug/raw-data', async (req, res) => {
         allRows: rows,
         cacheStatus: isCacheValid() ? 'Hit' : 'Miss',
         cacheAge: CACHE_TIMESTAMP ? Math.floor((Date.now() - CACHE_TIMESTAMP) / 1000) : 0,
-        memoryUsage: process.memoryUsage(),
+        memoryUsage: {
+          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+        },
         uptime: Math.floor(process.uptime()),
         config: {
           csvUrl: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`,
@@ -779,11 +786,11 @@ app.get('/api/debug/raw-data', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Debug: Error fetching raw data:', error);
+    console.error('❌ Production debug: Error fetching raw data:', error);
     res.status(500).json({
       success: false,
       debug: true,
-      error: 'Failed to fetch raw data for debugging',
+      error: 'Production debug failed to fetch raw data',
       message: error.message,
       renderUrl: RENDER_URL,
       config: {
@@ -794,7 +801,7 @@ app.get('/api/debug/raw-data', async (req, res) => {
   }
 });
 
-// Cache management endpoints
+// Production cache management endpoints
 app.post('/api/clear-cache', (req, res) => {
   const oldCacheAge = CACHE_TIMESTAMP ? Math.floor((Date.now() - CACHE_TIMESTAMP) / 1000) : 0;
   
@@ -803,11 +810,11 @@ app.post('/api/clear-cache', (req, res) => {
   QUESTIONS = [];
   CORRECT_ANSWERS = [];
   
-  console.log(`🗑️ Cache cleared (was ${oldCacheAge}s old)`);
+  console.log(`🗑️ Production cache cleared (was ${oldCacheAge}s old)`);
   
   res.json({
     success: true,
-    message: 'Cache cleared successfully',
+    message: 'Production cache cleared successfully',
     previousCacheAge: `${oldCacheAge}s`,
     renderUrl: RENDER_URL,
     timestamp: new Date().toISOString()
@@ -826,109 +833,106 @@ app.get('/api/cache-status', (req, res) => {
       questionsLoaded: QUESTIONS.length,
       correctAnswersLoaded: CORRECT_ANSWERS.length
     },
-    renderUrl: RENDER_URL
+    renderUrl: RENDER_URL,
+    mode: 'production-only'
   });
 });
 
-// Error handling middleware
+// Production error handling middleware
 app.use((err, req, res, next) => {
-  console.error('❌ Unhandled error:', err);
+  console.error('❌ Production unhandled error:', err);
   res.status(500).json({
     success: false,
-    error: 'Internal server error',
+    error: 'Production internal server error',
     message: err.message,
     renderUrl: RENDER_URL,
-    timestamp: new Date().toISOString(),
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    timestamp: new Date().toISOString()
   });
 });
 
-// Enhanced 404 handler
+// Production 404 handler
 app.use('*', (req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`❌ Production 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
-    error: 'Route not found',
+    error: 'Production route not found',
     message: `Cannot ${req.method} ${req.originalUrl}`,
     renderUrl: RENDER_URL,
     availableEndpoints: [
-      'GET /api/health - Service health check',
-      'GET /api/ping - Keep-alive endpoint', 
-      'GET /api/test-connection - Test Google Sheets connection',
-      'GET /api/dashboard-stats - Get dashboard statistics',
-      'GET /api/test-responses - Get all test responses',
-      'GET /api/questions - Get questions and correct answers',
-      'GET /api/response/:employeeId - Get specific employee response',
-      'GET /api/debug/raw-data - Debug raw data',
-      'GET /api/cache-status - Check cache status',
-      'POST /api/clear-cache - Clear data cache'
+      'GET /api/health - Production service health check',
+      'GET /api/ping - Production keep-alive endpoint', 
+      'GET /api/test-connection - Test production Google Sheets connection',
+      'GET /api/dashboard-stats - Get production dashboard statistics',
+      'GET /api/test-responses - Get all production test responses',
+      'GET /api/questions - Get production questions and correct answers',
+      'GET /api/response/:employeeId - Get specific production employee response',
+      'GET /api/debug/raw-data - Production debug raw data',
+      'GET /api/cache-status - Check production cache status',
+      'POST /api/clear-cache - Clear production data cache'
     ],
     documentation: `${RENDER_URL}/api/health`,
     timestamp: new Date().toISOString()
   });
 });
 
-// Enhanced keep-alive system for Render
-function startKeepAliveSystem() {
-  if (process.env.NODE_ENV === 'production') {
-    console.log('🔔 Starting keep-alive system for Render...');
-    
-    // Self-ping every 14 minutes to prevent sleeping
-    setInterval(async () => {
-      try {
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${RENDER_URL}/api/ping`);
-        const data = await response.json();
-        console.log(`🔔 Keep-alive ping successful: uptime ${data.uptime}s`);
-      } catch (error) {
-        console.log('⚠️ Keep-alive ping failed:', error.message);
-      }
-    }, 14 * 60 * 1000); // 14 minutes
-    
-    console.log('✅ Keep-alive system started (14 minute intervals)');
-  } else {
-    console.log('ℹ️ Keep-alive system disabled in development mode');
-  }
+// Production keep-alive system for Render
+function startProductionKeepAliveSystem() {
+  console.log('🔔 Starting production keep-alive system for Render...');
+  
+  // Production self-ping every 14 minutes to prevent sleeping
+  setInterval(async () => {
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${RENDER_URL}/api/ping`);
+      const data = await response.json();
+      console.log(`🔔 Production keep-alive ping successful: uptime ${data.uptime}s`);
+    } catch (error) {
+      console.log('⚠️ Production keep-alive ping failed:', error.message);
+    }
+  }, 14 * 60 * 1000); // 14 minutes
+  
+  console.log('✅ Production keep-alive system started (14 minute intervals)');
 }
 
-// Node-fetch availability check
-async function ensureNodeFetch() {
+// Production node-fetch availability check
+async function ensureProductionNodeFetch() {
   try {
     await import('node-fetch');
-    console.log('✅ node-fetch is available');
+    console.log('✅ Production node-fetch is available');
     return true;
   } catch (error) {
-    console.log('⚠️ node-fetch not found - fallback data will be used');
+    console.log('⚠️ Production node-fetch not found - enhanced fallback data will be used');
     return false;
   }
 }
 
-// Server startup
+// Production server startup
 app.listen(PORT, async () => {
-  const fetchAvailable = await ensureNodeFetch();
-  startKeepAliveSystem();
+  const fetchAvailable = await ensureProductionNodeFetch();
+  startProductionKeepAliveSystem();
   
-  console.log('\n🚀 KRISHNA MARUTI BACKEND - RENDER DEPLOYMENT');
-  console.log('='.repeat(50));
-  console.log(`🌐 Server URL: ${RENDER_URL}`);
+  console.log('\n🚀 KRISHNA MARUTI BACKEND - PRODUCTION RENDER DEPLOYMENT');
+  console.log('='.repeat(60));
+  console.log(`🌐 Production Server URL: ${RENDER_URL}`);
   console.log(`🔌 Port: ${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📦 Environment: production`);
   console.log(`⏱️ Started: ${new Date().toISOString()}`);
   console.log(`📊 Sheet ID: ${SHEET_ID}`);
   console.log(`🏷️ Sheet GID: ${SHEET_GID}`);
   console.log(`📄 CSV URL: https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`);
   console.log(`🔗 Sheet URL: https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${SHEET_GID}`);
   
-  console.log('\n✨ FEATURES ENABLED:');
-  console.log('   ✅ Enhanced CORS for Vercel + Render');
-  console.log('   ✅ 10-minute caching system');
-  console.log('   ✅ 15-second timeout handling');
-  console.log('   ✅ Enhanced fallback data system');
-  console.log('   ✅ Keep-alive system (production)');
-  console.log('   ✅ Comprehensive logging');
-  console.log('   ✅ Error recovery mechanisms');
+  console.log('\n✨ PRODUCTION FEATURES ENABLED:');
+  console.log('   ✅ Production-only CORS for Vercel deployment');
+  console.log('   ✅ 15-minute caching system optimized for production');
+  console.log('   ✅ 20-second timeout handling for production reliability');
+  console.log('   ✅ Enhanced fallback data system with 10 sample records');
+  console.log('   ✅ Production keep-alive system');
+  console.log('   ✅ Comprehensive production logging');
+  console.log('   ✅ Production error recovery mechanisms');
+  console.log('   ✅ Memory usage optimization');
   
-  console.log('\n📋 API ENDPOINTS:');
+  console.log('\n📋 PRODUCTION API ENDPOINTS:');
   console.log(`  🟢 GET  ${RENDER_URL}/api/health`);
   console.log(`  🟢 GET  ${RENDER_URL}/api/ping`);
   console.log(`  🟢 GET  ${RENDER_URL}/api/test-connection`);
@@ -940,22 +944,22 @@ app.listen(PORT, async () => {
   console.log(`  🟢 GET  ${RENDER_URL}/api/cache-status`);
   console.log(`  🟡 POST ${RENDER_URL}/api/clear-cache`);
   
-  console.log('\n🧪 QUICK TESTS:');
+  console.log('\n🧪 PRODUCTION QUICK TESTS:');
   console.log(`  curl ${RENDER_URL}/api/health`);
   console.log(`  curl ${RENDER_URL}/api/test-connection`);
   
-  console.log('\n📱 CORS ORIGINS:');
-  console.log('   • http://localhost:4200 (development)');
+  console.log('\n📱 PRODUCTION CORS ORIGINS:');
   console.log('   • https://krishna-maruti.vercel.app (production)');
-  console.log('   • https://krishna-maruti-*.vercel.app (previews)');
+  console.log('   • https://krishna-maruti-*.vercel.app (preview deployments)');
+  console.log('   • Self-reference for keep-alive');
   
-  console.log('\n⚠️ REQUIREMENTS:');
+  console.log('\n⚠️ PRODUCTION REQUIREMENTS:');
   console.log('   • Google Sheet must be publicly accessible');
   console.log('   • Share settings: "Anyone with the link can view"');
-  console.log(`   • node-fetch: ${fetchAvailable ? 'Available' : 'Using fallback'}` );
+  console.log(`   • node-fetch: ${fetchAvailable ? 'Available' : 'Using enhanced fallback'}` );
   
-  console.log('\n🎯 RENDER DEPLOYMENT READY!');
-  console.log('='.repeat(50));
+  console.log('\n🎯 PRODUCTION RENDER DEPLOYMENT READY!');
+  console.log('='.repeat(60));
 });
 
 module.exports = app;
