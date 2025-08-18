@@ -1,8 +1,10 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
+import { timeout, retry, catchError } from 'rxjs/operators';
+import { of, throwError } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -48,14 +50,21 @@ export class Dashboard implements OnInit, AfterViewInit {
   @ViewChild('scoreChart') scoreChartRef!: ElementRef;
   @ViewChild('passFailChart') passFailChartRef!: ElementRef;
 
-  // Backend API URL
-  private readonly API_BASE_URL = 'https://krishna-maruti-backend.onrender.com/api';
+  // Multiple backend URLs for redundancy
+  private readonly API_URLS = [
+    'https://krishna-maruti-backend.onrender.com/api',
+    'http://localhost:3000/api'  // Fallback to local if available
+  ];
+  
+  private currentApiUrl = this.API_URLS[0];
 
   responses: TestResponse[] = [];
   filteredResponses: TestResponse[] = [];
   selectedResponse: TestResponse | null = null;
   isLoading: boolean = false;
   errorMessage: string = '';
+  connectionAttempts = 0;
+  maxRetries = 3;
 
   // Filter properties
   selectedDepartment = '';
@@ -87,46 +96,111 @@ export class Dashboard implements OnInit, AfterViewInit {
   // API connection status
   apiConnected = false;
   lastUpdateTime: Date | null = null;
+  isRetrying = false;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.checkApiHealth();
-    this.loadQuestions();
-    this.loadDashboardData();
+    this.loadFallbackQuestions(); // Load immediately for better UX
+    this.initializeConnection();
   }
 
   ngAfterViewInit() {
     // Charts will be created after data is loaded
   }
 
+  async initializeConnection() {
+    this.isLoading = true;
+    this.errorMessage = '';
+    
+    console.log('🔄 Initializing connection to backend...');
+    
+    // Try to wake up the server first
+    await this.wakeUpServer();
+    
+    // Then load data
+    await this.checkApiHealth();
+    await this.loadQuestions();
+    await this.loadDashboardData();
+  }
+
+  async wakeUpServer() {
+    console.log('🔔 Attempting to wake up Render server...');
+    this.isRetrying = true;
+    
+    try {
+      // Make a simple request to wake up the server
+      const wakeUpPromise = this.http.get(`${this.currentApiUrl}/health`, {
+        headers: { 'Cache-Control': 'no-cache' }
+      }).pipe(
+        timeout(60000), // 60 seconds timeout for wake up
+        retry(2),
+        catchError((error: HttpErrorResponse) => {
+          console.log('Wake up attempt failed:', error.status);
+          return of(null);
+        })
+      ).toPromise();
+
+      await wakeUpPromise;
+      console.log('✅ Server wake up completed');
+      
+    } catch (error) {
+      console.log('⚠️ Server wake up timed out, but continuing...');
+    } finally {
+      this.isRetrying = false;
+    }
+  }
+
   async checkApiHealth() {
     try {
-      const response = await this.http.get<ApiResponse>(`${this.API_BASE_URL}/health`).toPromise();
+      console.log('🏥 Checking API health...');
+      
+      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/health`).pipe(
+        timeout(30000), // 30 seconds timeout
+        retry(2),
+        catchError(this.handleError.bind(this))
+      ).toPromise();
+      
       this.apiConnected = response?.success || false;
-      console.log('API Health:', response);
+      console.log('✅ API Health check successful:', response);
+      
     } catch (error) {
-      console.error('API Health check failed:', error);
+      console.error('❌ API Health check failed:', error);
       this.apiConnected = false;
+      
+      // Try fallback URL
+      if (this.currentApiUrl !== this.API_URLS[1]) {
+        console.log('🔄 Trying fallback API URL...');
+        this.currentApiUrl = this.API_URLS[1];
+        await this.checkApiHealth();
+      }
     }
   }
 
   async loadQuestions() {
     try {
-      const response = await this.http.get<ApiResponse>(`${this.API_BASE_URL}/questions`).toPromise();
+      console.log('📚 Loading questions...');
+      
+      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/questions`).pipe(
+        timeout(30000),
+        retry(2),
+        catchError(this.handleError.bind(this))
+      ).toPromise();
+      
       if (response?.success) {
         this.questions = response.data.questions || [];
         this.correctAnswers = response.data.correctAnswers || [];
-        console.log('Loaded questions:', this.questions.length);
+        console.log('✅ Loaded questions:', this.questions.length);
       }
+      
     } catch (error) {
-      console.error('Error loading questions:', error);
-      // Fallback questions if API fails
-      this.loadFallbackQuestions();
+      console.error('❌ Error loading questions:', error);
+      // Fallback questions are already loaded
     }
   }
 
   private loadFallbackQuestions() {
+    console.log('📚 Loading fallback questions...');
     this.questions = [
       "Which law states that stress is proportional to strain within the elastic limit?",
       "Which type of gear is used to transmit motion between intersecting shafts?",
@@ -150,9 +224,13 @@ export class Dashboard implements OnInit, AfterViewInit {
     this.errorMessage = '';
     
     try {
-      console.log('Fetching dashboard data from:', `${this.API_BASE_URL}/dashboard-stats`);
+      console.log('📊 Fetching dashboard data from:', `${this.currentApiUrl}/dashboard-stats`);
       
-      const response = await this.http.get<ApiResponse>(`${this.API_BASE_URL}/dashboard-stats`).toPromise();
+      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/dashboard-stats`).pipe(
+        timeout(45000), // 45 seconds timeout for data loading
+        retry(2),
+        catchError(this.handleError.bind(this))
+      ).toPromise();
       
       if (response?.success) {
         const data = response.data;
@@ -181,8 +259,9 @@ export class Dashboard implements OnInit, AfterViewInit {
         
         this.lastUpdateTime = new Date();
         this.apiConnected = true;
+        this.connectionAttempts = 0;
         
-        console.log('Dashboard data loaded successfully:', {
+        console.log('✅ Dashboard data loaded successfully:', {
           totalResponses: this.totalResponses,
           departments: this.departments.length,
           responses: this.responses.length
@@ -200,48 +279,96 @@ export class Dashboard implements OnInit, AfterViewInit {
       }
       
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      this.errorMessage = `Failed to load data from server: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      this.apiConnected = false;
+      console.error('❌ Error loading dashboard data:', error);
+      this.connectionAttempts++;
       
-      // Load sample data as fallback
-      this.loadSampleData();
+      if (this.connectionAttempts < this.maxRetries) {
+        this.errorMessage = `Server is starting up... Attempt ${this.connectionAttempts}/${this.maxRetries}. Please wait.`;
+        
+        // Wait before retrying
+        setTimeout(() => {
+          this.loadDashboardData();
+        }, 5000);
+        
+      } else {
+        this.apiConnected = false;
+        this.errorMessage = 'Unable to connect to server. Using sample data for demonstration.';
+        
+        // Load sample data as fallback
+        this.loadSampleData();
+      }
     } finally {
-      this.isLoading = false;
+      if (this.connectionAttempts >= this.maxRetries || this.apiConnected) {
+        this.isLoading = false;
+      }
+    }
+  }
+
+  private handleError(error: HttpErrorResponse) {
+    console.error('HTTP Error:', error);
+    
+    if (error.status === 504) {
+      // Gateway timeout - server is probably sleeping
+      return throwError(() => new Error('Server is starting up, please wait...'));
+    } else if (error.status === 0) {
+      // Network error
+      return throwError(() => new Error('Network connection failed'));
+    } else {
+      return throwError(() => new Error(`Server error: ${error.message}`));
     }
   }
 
   // Enhanced sample data for fallback
   private loadSampleData() {
-    console.log('Loading sample data as fallback...');
+    console.log('📊 Loading sample data as fallback...');
     
     this.responses = [
       {
-        fullName: 'Shubham',
+        fullName: 'Shubham Kumar',
         employeeId: '123',
-        dateOfBirth: '12/2/33',
+        dateOfBirth: '12/2/1995',
         department: 'IT',
-        score: 5, // Based on actual answers from your data
+        score: 10, // Reference employee gets perfect score
         answers: [
-          { questionIndex: 0, selectedAnswer: "Newton's Law", isCorrect: false },
+          { questionIndex: 0, selectedAnswer: "Hooke's Law", isCorrect: true },
           { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
-          { questionIndex: 2, selectedAnswer: "Rankine Cycle", isCorrect: false },
+          { questionIndex: 2, selectedAnswer: "Otto Cycle", isCorrect: true },
           { questionIndex: 3, selectedAnswer: "Watt", isCorrect: true },
-          { questionIndex: 4, selectedAnswer: "Mohs", isCorrect: false },
-          { questionIndex: 5, selectedAnswer: "MIG", isCorrect: false },
-          { questionIndex: 6, selectedAnswer: "Pa", isCorrect: false },
-          { questionIndex: 7, selectedAnswer: "Lead", isCorrect: false },
+          { questionIndex: 4, selectedAnswer: "Vickers", isCorrect: true },
+          { questionIndex: 5, selectedAnswer: "CNC", isCorrect: true },
+          { questionIndex: 6, selectedAnswer: "J/K", isCorrect: true },
+          { questionIndex: 7, selectedAnswer: "Aluminium", isCorrect: true },
           { questionIndex: 8, selectedAnswer: "X-Ray Inspection", isCorrect: true },
-          { questionIndex: 9, selectedAnswer: "Normalizing", isCorrect: false }
+          { questionIndex: 9, selectedAnswer: "Quenching", isCorrect: true }
         ],
         submissionDate: new Date('2025-08-16T14:10:59')
       },
       {
-        fullName: 'df',
-        employeeId: '2341',
-        dateOfBirth: '13/02/2005',
+        fullName: 'Rajesh Sharma',
+        employeeId: '456',
+        dateOfBirth: '13/02/1990',
         department: 'Mechanical',
-        score: 4, // Based on actual answers from your data
+        score: 8,
+        answers: [
+          { questionIndex: 0, selectedAnswer: "Hooke's Law", isCorrect: true },
+          { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
+          { questionIndex: 2, selectedAnswer: "Otto Cycle", isCorrect: true },
+          { questionIndex: 3, selectedAnswer: "Watt", isCorrect: true },
+          { questionIndex: 4, selectedAnswer: "Mohs", isCorrect: false },
+          { questionIndex: 5, selectedAnswer: "CNC", isCorrect: true },
+          { questionIndex: 6, selectedAnswer: "J/K", isCorrect: true },
+          { questionIndex: 7, selectedAnswer: "Copper", isCorrect: false },
+          { questionIndex: 8, selectedAnswer: "X-Ray Inspection", isCorrect: true },
+          { questionIndex: 9, selectedAnswer: "Quenching", isCorrect: true }
+        ],
+        submissionDate: new Date('2025-08-16T19:07:21')
+      },
+      {
+        fullName: 'Priya Singh',
+        employeeId: '789',
+        dateOfBirth: '25/05/1992',
+        department: 'Electrical',
+        score: 5,
         answers: [
           { questionIndex: 0, selectedAnswer: "Pascal's Law", isCorrect: false },
           { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
@@ -250,11 +377,11 @@ export class Dashboard implements OnInit, AfterViewInit {
           { questionIndex: 4, selectedAnswer: "Vickers", isCorrect: true },
           { questionIndex: 5, selectedAnswer: "TIG", isCorrect: false },
           { questionIndex: 6, selectedAnswer: "W", isCorrect: false },
-          { questionIndex: 7, selectedAnswer: "Copper", isCorrect: false },
+          { questionIndex: 7, selectedAnswer: "Aluminium", isCorrect: true },
           { questionIndex: 8, selectedAnswer: "Bend Test", isCorrect: false },
           { questionIndex: 9, selectedAnswer: "Normalizing", isCorrect: false }
         ],
-        submissionDate: new Date('2025-08-16T19:07:21')
+        submissionDate: new Date('2025-08-17T10:15:30')
       }
     ];
     
@@ -267,8 +394,9 @@ export class Dashboard implements OnInit, AfterViewInit {
   }
 
   async refreshData() {
-    await this.checkApiHealth();
-    await this.loadDashboardData();
+    this.connectionAttempts = 0;
+    this.errorMessage = '';
+    await this.initializeConnection();
   }
 
   initializeData() {
@@ -557,5 +685,29 @@ export class Dashboard implements OnInit, AfterViewInit {
 
   getPassPercentage(): number {
     return this.totalResponses > 0 ? Math.round((this.passedCount / this.totalResponses) * 100) : 0;
+  }
+
+  // Status indicators
+  getConnectionStatus(): string {
+    if (this.isRetrying) {
+      return 'Waking up server...';
+    }
+    if (this.isLoading && this.connectionAttempts > 0) {
+      return `Connecting... (${this.connectionAttempts}/${this.maxRetries})`;
+    }
+    if (this.apiConnected) {
+      return 'Connected';
+    }
+    return 'Using sample data';
+  }
+
+  getConnectionClass(): string {
+    if (this.isRetrying || (this.isLoading && this.connectionAttempts > 0)) {
+      return 'text-yellow-600';
+    }
+    if (this.apiConnected) {
+      return 'text-green-600';
+    }
+    return 'text-orange-600';
   }
 }
