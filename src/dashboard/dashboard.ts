@@ -49,7 +49,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   @ViewChild('passFailChart') passFailChartRef!: ElementRef;
 
   // Backend API URL
-  private readonly API_BASE_URL = 'http://localhost:3000/api';
+  private readonly API_BASE_URL = 'https://krishna-maruti-backend.onrender.com/api';
 
   responses: TestResponse[] = [];
   filteredResponses: TestResponse[] = [];
