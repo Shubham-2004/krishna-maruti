@@ -9,42 +9,102 @@ const PORT = process.env.PORT || 3000;
 // Production URL for Render deployment
 const RENDER_URL = 'https://krishna-maruti-backend.onrender.com';
 
-// Production-only CORS Configuration - Optimized for Render
-app.use(cors({
-  origin: [
-    'https://krishna-maruti.vercel.app',  // Production Vercel domain
-    'https://krishna-maruti-*.vercel.app', // Preview deployments
-    /^https:\/\/krishna-maruti.*\.vercel\.app$/, // Regex for all Vercel subdomains
-    'https://krishna-maruti-backend.onrender.com', // Self-reference for keep-alive
-  ],
+// Enhanced CORS Configuration - Fixed for Production
+const corsOptions = {
+  origin: function (origin, callback) {
+    console.log('🌐 CORS Check - Origin:', origin);
+    
+    const allowedOrigins = [
+      'https://krishna-maruti.vercel.app',
+      'https://krishna-maruti-backend.onrender.com',
+      // Allow all Vercel preview deployments
+      /^https:\/\/krishna-maruti.*\.vercel\.app$/,
+      // Allow all Render deployments
+      /^https:\/\/krishna-maruti-backend.*\.onrender\.com$/
+    ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      console.log('✅ CORS: No origin - allowing request');
+      return callback(null, true);
+    }
+    
+    // Check exact matches
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS: Exact match found for origin');
+      return callback(null, true);
+    }
+    
+    // Check regex patterns
+    const regexMatches = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    if (regexMatches) {
+      console.log('✅ CORS: Regex match found for origin');
+      return callback(null, true);
+    }
+    
+    console.log('❌ CORS: Origin not allowed:', origin);
+    const error = new Error(`CORS policy violation. Origin ${origin} not allowed.`);
+    error.status = 403;
+    callback(error);
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With', 
+    'Content-Type', 
+    'Accept',
+    'Authorization', 
+    'Cache-Control',
+    'X-HTTP-Method-Override'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+};
 
-// Production-only CORS middleware for Render deployment
+// Apply CORS middleware FIRST
+app.use(cors(corsOptions));
+
+// Additional explicit CORS headers middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://krishna-maruti.vercel.app',
-    'https://krishna-maruti-backend.onrender.com'
-  ];
+  console.log(`📝 Request: ${req.method} ${req.path} from origin: ${origin || 'no-origin'}`);
   
-  // Allow all Vercel deployments and Render self-reference
-  if (allowedOrigins.includes(origin) || 
-      /^https:\/\/krishna-maruti.*\.vercel\.app$/.test(origin) ||
-      /^https:\/\/krishna-maruti-backend.*\.onrender\.com$/.test(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  // Always set basic CORS headers
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,HEAD');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,X-HTTP-Method-Override');
+  res.header('Access-Control-Max-Age', '86400'); // Cache for 24 hours
+  
+  // Set specific origin if it's allowed
+  if (origin) {
+    const allowedOrigins = [
+      'https://krishna-maruti.vercel.app',
+      'https://krishna-maruti-backend.onrender.com'
+    ];
+    
+    if (allowedOrigins.includes(origin) || 
+        /^https:\/\/krishna-maruti.*\.vercel\.app$/.test(origin) ||
+        /^https:\/\/krishna-maruti-backend.*\.onrender\.com$/.test(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      console.log('✅ CORS headers set for origin:', origin);
+    }
+  } else {
+    // For requests without origin (like Postman, mobile apps)
+    res.header('Access-Control-Allow-Origin', '*');
+    console.log('✅ CORS headers set for no-origin request');
   }
   
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
-  
-  // Handle preflight requests
+  // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
+    console.log('🔄 Handling OPTIONS preflight request');
     res.status(200).end();
     return;
   }
@@ -52,14 +112,11 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Production logging middleware
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'None'}`);
-  next();
-});
+// ...existing code...
 
 // Google Sheets Configuration
 const SHEET_ID = '1yjOEf3aBN-MBKuUY1ypyrxRo5x2mqH3WAFZlz3aPbls';
