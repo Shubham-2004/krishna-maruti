@@ -30,6 +30,7 @@ interface DepartmentStats {
   passed: number;
   failed: number;
   averageScore: number;
+  passPercentage: number;
 }
 
 interface ApiResponse {
@@ -50,13 +51,8 @@ export class Dashboard implements OnInit, AfterViewInit {
   @ViewChild('scoreChart') scoreChartRef!: ElementRef;
   @ViewChild('passFailChart') passFailChartRef!: ElementRef;
 
-  // Multiple backend URLs for redundancy
-  private readonly API_URLS = [
-    'https://krishna-maruti-backend.onrender.com/api',
-    'http://localhost:3000/api'  // Fallback to local if available
-  ];
-  
-  private currentApiUrl = this.API_URLS[0];
+  // Production-only backend URL
+  private readonly API_URL = 'https://krishna-maruti-backend.onrender.com/api';
 
   responses: TestResponse[] = [];
   filteredResponses: TestResponse[] = [];
@@ -64,7 +60,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   isLoading: boolean = false;
   errorMessage: string = '';
   connectionAttempts = 0;
-  maxRetries = 3;
+  maxRetries = 5; // Increased for Render cold starts
 
   // Filter properties
   selectedDepartment = '';
@@ -89,7 +85,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   scoreChart: Chart | null = null;
   passFailChart: Chart | null = null;
 
-  // Questions and correct answers (loaded from backend)
+  // Questions and correct answers (loaded from backend only)
   questions: string[] = [];
   correctAnswers: string[] = [];
 
@@ -97,55 +93,55 @@ export class Dashboard implements OnInit, AfterViewInit {
   apiConnected = false;
   lastUpdateTime: Date | null = null;
   isRetrying = false;
+  serverStatus = 'Initializing...';
+
+  // Backend metadata
+  backendMetadata: any = null;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.loadFallbackQuestions(); // Load immediately for better UX
     this.initializeConnection();
   }
 
   ngAfterViewInit() {
-    // Charts will be created after data is loaded
+    // Charts will be created after data is loaded from backend
   }
 
   async initializeConnection() {
     this.isLoading = true;
     this.errorMessage = '';
+    this.serverStatus = 'Connecting to production server...';
     
-    console.log('🔄 Initializing connection to backend...');
+    console.log('🔄 Initializing connection to production backend...');
+    console.log('🌐 Backend URL:', this.API_URL);
     
-    // Try to wake up the server first
+    // Wake up server and load data
     await this.wakeUpServer();
-    
-    // Then load data
     await this.checkApiHealth();
     await this.loadQuestions();
     await this.loadDashboardData();
   }
 
   async wakeUpServer() {
-    console.log('🔔 Attempting to wake up Render server...');
+    console.log('🔔 Waking up Render production server...');
     this.isRetrying = true;
+    this.serverStatus = 'Waking up production server (this may take 30-60 seconds)...';
     
     try {
-      // Make a simple request to wake up the server
-      const wakeUpPromise = this.http.get(`${this.currentApiUrl}/health`, {
-        headers: { 'Cache-Control': 'no-cache' }
-      }).pipe(
-        timeout(60000), // 60 seconds timeout for wake up
-        retry(2),
-        catchError((error: HttpErrorResponse) => {
-          console.log('Wake up attempt failed:', error.status);
-          return of(null);
-        })
-      ).toPromise();
+      // Make multiple wake-up requests
+      const wakeUpRequests = [
+        this.http.get(`${this.API_URL}/ping`).pipe(timeout(60000), catchError(() => of(null))).toPromise(),
+        this.http.get(`${this.API_URL}/health`).pipe(timeout(60000), catchError(() => of(null))).toPromise()
+      ];
 
-      await wakeUpPromise;
-      console.log('✅ Server wake up completed');
+      await Promise.allSettled(wakeUpRequests);
+      console.log('✅ Production server wake up completed');
+      this.serverStatus = 'Server awakened, loading data...';
       
     } catch (error) {
-      console.log('⚠️ Server wake up timed out, but continuing...');
+      console.log('⚠️ Server wake up had issues, but continuing...');
+      this.serverStatus = 'Server wake up completed, attempting data load...';
     } finally {
       this.isRetrying = false;
     }
@@ -153,70 +149,57 @@ export class Dashboard implements OnInit, AfterViewInit {
 
   async checkApiHealth() {
     try {
-      console.log('🏥 Checking API health...');
+      console.log('🏥 Checking production API health...');
+      this.serverStatus = 'Checking server health...';
       
-      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/health`).pipe(
-        timeout(30000), // 30 seconds timeout
-        retry(2),
+      const response = await this.http.get<ApiResponse>(`${this.API_URL}/health`).pipe(
+        timeout(45000), // 45 seconds timeout for health check
+        retry(3),
         catchError(this.handleError.bind(this))
       ).toPromise();
       
-      this.apiConnected = response?.success || false;
-      console.log('✅ API Health check successful:', response);
+      if (response?.success) {
+        this.apiConnected = true;
+        this.backendMetadata = response;
+        this.serverStatus = 'Connected to production server';
+        console.log('✅ Production API Health check successful:', response);
+      } else {
+        throw new Error('Health check failed');
+      }
       
     } catch (error) {
-      console.error('❌ API Health check failed:', error);
+      console.error('❌ Production API Health check failed:', error);
       this.apiConnected = false;
-      
-      // Try fallback URL
-      if (this.currentApiUrl !== this.API_URLS[1]) {
-        console.log('🔄 Trying fallback API URL...');
-        this.currentApiUrl = this.API_URLS[1];
-        await this.checkApiHealth();
-      }
+      this.serverStatus = 'Health check failed';
+      throw error;
     }
   }
 
   async loadQuestions() {
     try {
-      console.log('📚 Loading questions...');
+      console.log('📚 Loading questions from production backend...');
+      this.serverStatus = 'Loading questions from server...';
       
-      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/questions`).pipe(
+      const response = await this.http.get<ApiResponse>(`${this.API_URL}/questions`).pipe(
         timeout(30000),
-        retry(2),
+        retry(3),
         catchError(this.handleError.bind(this))
       ).toPromise();
       
-      if (response?.success) {
+      if (response?.success && response.data) {
         this.questions = response.data.questions || [];
         this.correctAnswers = response.data.correctAnswers || [];
-        console.log('✅ Loaded questions:', this.questions.length);
+        console.log('✅ Questions loaded from production:', this.questions.length);
+        this.serverStatus = 'Questions loaded successfully';
+      } else {
+        throw new Error('Failed to load questions from backend');
       }
       
     } catch (error) {
-      console.error('❌ Error loading questions:', error);
-      // Fallback questions are already loaded
+      console.error('❌ Error loading questions from production backend:', error);
+      this.serverStatus = 'Failed to load questions';
+      throw error;
     }
-  }
-
-  private loadFallbackQuestions() {
-    console.log('📚 Loading fallback questions...');
-    this.questions = [
-      "Which law states that stress is proportional to strain within the elastic limit?",
-      "Which type of gear is used to transmit motion between intersecting shafts?",
-      "Which cycle is used in IC engines?",
-      "Unit of Power is?",
-      "The hardness test performed using diamond pyramid is called?",
-      "Which of the following is NOT a welding process?",
-      "In thermodynamics, the SI unit of entropy is?",
-      "Which metal is commonly used in aircraft manufacturing?",
-      "Which of the following is a non-destructive testing method?",
-      "The process of cooling a material rapidly to increase hardness is?"
-    ];
-    this.correctAnswers = [
-      "Hooke's Law", "Bevel Gear", "Otto Cycle", "Watt", "Vickers",
-      "CNC", "J/K", "Aluminium", "X-Ray Inspection", "Quenching"
-    ];
   }
 
   async loadDashboardData() {
@@ -224,24 +207,25 @@ export class Dashboard implements OnInit, AfterViewInit {
     this.errorMessage = '';
     
     try {
-      console.log('📊 Fetching dashboard data from:', `${this.currentApiUrl}/dashboard-stats`);
+      console.log('📊 Fetching dashboard data from production backend...');
+      this.serverStatus = 'Loading dashboard data...';
       
-      const response = await this.http.get<ApiResponse>(`${this.currentApiUrl}/dashboard-stats`).pipe(
-        timeout(45000), // 45 seconds timeout for data loading
-        retry(2),
+      const response = await this.http.get<ApiResponse>(`${this.API_URL}/dashboard-stats`).pipe(
+        timeout(60000), // 60 seconds timeout for dashboard data
+        retry(3),
         catchError(this.handleError.bind(this))
       ).toPromise();
       
-      if (response?.success) {
+      if (response?.success && response.data) {
         const data = response.data;
         
         // Process responses with proper date conversion
         this.responses = (data.responses || []).map((r: any) => ({
           ...r,
-          submissionDate: new Date(r.submissionDate || r.timestamp)
+          submissionDate: new Date(r.submissionDate || r.timestamp || new Date())
         }));
         
-        // Update statistics
+        // Update statistics from backend
         this.totalResponses = data.totalResponses || 0;
         this.passedCount = data.passedCount || 0;
         this.failedCount = data.failedCount || 0;
@@ -249,7 +233,7 @@ export class Dashboard implements OnInit, AfterViewInit {
         this.departments = data.departments || [];
         this.departmentStats = data.departmentStats || [];
         
-        // Update questions if provided in metadata
+        // Update questions from metadata if available
         if (data.metadata?.questions) {
           this.questions = data.metadata.questions;
         }
@@ -257,45 +241,54 @@ export class Dashboard implements OnInit, AfterViewInit {
           this.correctAnswers = data.metadata.correctAnswers;
         }
         
+        // Store backend metadata
+        this.backendMetadata = data.metadata;
+        
         this.lastUpdateTime = new Date();
         this.apiConnected = true;
         this.connectionAttempts = 0;
+        this.serverStatus = `Data loaded successfully (${this.totalResponses} responses)`;
         
-        console.log('✅ Dashboard data loaded successfully:', {
+        console.log('✅ Production dashboard data loaded successfully:', {
           totalResponses: this.totalResponses,
           departments: this.departments.length,
-          responses: this.responses.length
+          responses: this.responses.length,
+          cacheStatus: data.metadata?.cacheStatus,
+          renderUrl: data.metadata?.renderUrl
         });
         
         this.applyFilters();
         
-        // Create charts after a small delay to ensure DOM is ready
+        // Create charts after DOM is ready
         setTimeout(() => {
           this.createCharts();
         }, 100);
         
       } else {
-        throw new Error(response?.error || response?.message || 'Failed to load data');
+        throw new Error(response?.error || response?.message || 'No data received from backend');
       }
       
     } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
+      console.error('❌ Error loading dashboard data from production:', error);
       this.connectionAttempts++;
       
       if (this.connectionAttempts < this.maxRetries) {
-        this.errorMessage = `Server is starting up... Attempt ${this.connectionAttempts}/${this.maxRetries}. Please wait.`;
+        this.serverStatus = `Connection attempt ${this.connectionAttempts}/${this.maxRetries}...`;
+        this.errorMessage = `Production server is starting up... Attempt ${this.connectionAttempts}/${this.maxRetries}. Please wait.`;
         
-        // Wait before retrying
+        // Progressive retry delays
+        const retryDelay = Math.min(5000 + (this.connectionAttempts * 3000), 15000);
+        console.log(`⏳ Retrying in ${retryDelay/1000} seconds...`);
+        
         setTimeout(() => {
           this.loadDashboardData();
-        }, 5000);
+        }, retryDelay);
         
       } else {
         this.apiConnected = false;
-        this.errorMessage = 'Unable to connect to server. Using sample data for demonstration.';
-        
-        // Load sample data as fallback
-        this.loadSampleData();
+        this.serverStatus = 'Failed to connect to production server';
+        this.errorMessage = 'Unable to connect to production server after multiple attempts. Please check your internet connection or try again later.';
+        console.error('❌ Max retry attempts reached. Cannot load data from production backend.');
       }
     } finally {
       if (this.connectionAttempts >= this.maxRetries || this.apiConnected) {
@@ -305,124 +298,37 @@ export class Dashboard implements OnInit, AfterViewInit {
   }
 
   private handleError(error: HttpErrorResponse) {
-    console.error('HTTP Error:', error);
+    console.error('Production HTTP Error:', error);
     
-    if (error.status === 504) {
-      // Gateway timeout - server is probably sleeping
-      return throwError(() => new Error('Server is starting up, please wait...'));
+    if (error.status === 504 || error.status === 502) {
+      return throwError(() => new Error('Production server is starting up, please wait...'));
     } else if (error.status === 0) {
-      // Network error
-      return throwError(() => new Error('Network connection failed'));
+      return throwError(() => new Error('Network connection to production server failed'));
+    } else if (error.status >= 500) {
+      return throwError(() => new Error(`Production server error: ${error.status}`));
     } else {
-      return throwError(() => new Error(`Server error: ${error.message}`));
+      return throwError(() => new Error(`Connection error: ${error.message}`));
     }
-  }
-
-  // Enhanced sample data for fallback
-  private loadSampleData() {
-    console.log('📊 Loading sample data as fallback...');
-    
-    this.responses = [
-      {
-        fullName: 'Shubham Kumar',
-        employeeId: '123',
-        dateOfBirth: '12/2/1995',
-        department: 'IT',
-        score: 10, // Reference employee gets perfect score
-        answers: [
-          { questionIndex: 0, selectedAnswer: "Hooke's Law", isCorrect: true },
-          { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
-          { questionIndex: 2, selectedAnswer: "Otto Cycle", isCorrect: true },
-          { questionIndex: 3, selectedAnswer: "Watt", isCorrect: true },
-          { questionIndex: 4, selectedAnswer: "Vickers", isCorrect: true },
-          { questionIndex: 5, selectedAnswer: "CNC", isCorrect: true },
-          { questionIndex: 6, selectedAnswer: "J/K", isCorrect: true },
-          { questionIndex: 7, selectedAnswer: "Aluminium", isCorrect: true },
-          { questionIndex: 8, selectedAnswer: "X-Ray Inspection", isCorrect: true },
-          { questionIndex: 9, selectedAnswer: "Quenching", isCorrect: true }
-        ],
-        submissionDate: new Date('2025-08-16T14:10:59')
-      },
-      {
-        fullName: 'Rajesh Sharma',
-        employeeId: '456',
-        dateOfBirth: '13/02/1990',
-        department: 'Mechanical',
-        score: 8,
-        answers: [
-          { questionIndex: 0, selectedAnswer: "Hooke's Law", isCorrect: true },
-          { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
-          { questionIndex: 2, selectedAnswer: "Otto Cycle", isCorrect: true },
-          { questionIndex: 3, selectedAnswer: "Watt", isCorrect: true },
-          { questionIndex: 4, selectedAnswer: "Mohs", isCorrect: false },
-          { questionIndex: 5, selectedAnswer: "CNC", isCorrect: true },
-          { questionIndex: 6, selectedAnswer: "J/K", isCorrect: true },
-          { questionIndex: 7, selectedAnswer: "Copper", isCorrect: false },
-          { questionIndex: 8, selectedAnswer: "X-Ray Inspection", isCorrect: true },
-          { questionIndex: 9, selectedAnswer: "Quenching", isCorrect: true }
-        ],
-        submissionDate: new Date('2025-08-16T19:07:21')
-      },
-      {
-        fullName: 'Priya Singh',
-        employeeId: '789',
-        dateOfBirth: '25/05/1992',
-        department: 'Electrical',
-        score: 5,
-        answers: [
-          { questionIndex: 0, selectedAnswer: "Pascal's Law", isCorrect: false },
-          { questionIndex: 1, selectedAnswer: "Bevel Gear", isCorrect: true },
-          { questionIndex: 2, selectedAnswer: "Carnot Cycle", isCorrect: false },
-          { questionIndex: 3, selectedAnswer: "Watt", isCorrect: true },
-          { questionIndex: 4, selectedAnswer: "Vickers", isCorrect: true },
-          { questionIndex: 5, selectedAnswer: "TIG", isCorrect: false },
-          { questionIndex: 6, selectedAnswer: "W", isCorrect: false },
-          { questionIndex: 7, selectedAnswer: "Aluminium", isCorrect: true },
-          { questionIndex: 8, selectedAnswer: "Bend Test", isCorrect: false },
-          { questionIndex: 9, selectedAnswer: "Normalizing", isCorrect: false }
-        ],
-        submissionDate: new Date('2025-08-17T10:15:30')
-      }
-    ];
-    
-    this.initializeData();
-    this.applyFilters();
-    
-    setTimeout(() => {
-      this.createCharts();
-    }, 100);
   }
 
   async refreshData() {
+    console.log('🔄 Manually refreshing data from production backend...');
     this.connectionAttempts = 0;
     this.errorMessage = '';
-    await this.initializeConnection();
-  }
-
-  initializeData() {
-    this.totalResponses = this.responses.length;
-    this.passedCount = this.responses.filter(r => r.score >= 6).length;
-    this.failedCount = this.totalResponses - this.passedCount;
-    this.averageScore = this.totalResponses > 0 ? 
-      this.responses.reduce((sum, r) => sum + r.score, 0) / this.totalResponses : 0;
-    this.departments = [...new Set(this.responses.map(r => r.department).filter(d => d))];
+    this.serverStatus = 'Refreshing...';
     
-    // Calculate department stats if not provided by API
-    if (this.departmentStats.length === 0) {
-      this.departmentStats = this.departments.map(dept => {
-        const deptResponses = this.responses.filter(r => r.department === dept);
-        const passed = deptResponses.filter(r => r.score >= 6).length;
-        const avgScore = deptResponses.reduce((sum, r) => sum + r.score, 0) / deptResponses.length;
-        
-        return {
-          name: dept,
-          totalCandidates: deptResponses.length,
-          passed,
-          failed: deptResponses.length - passed,
-          averageScore: Math.round(avgScore * 10) / 10
-        };
-      });
+    // Clear cache on backend first
+    try {
+      await this.http.post(`${this.API_URL}/clear-cache`, {}).pipe(
+        timeout(10000),
+        catchError(() => of(null))
+      ).toPromise();
+      console.log('🗑️ Backend cache cleared');
+    } catch (error) {
+      console.log('⚠️ Cache clear failed, but continuing...');
     }
+    
+    await this.initializeConnection();
   }
 
   applyFilters() {
@@ -464,6 +370,11 @@ export class Dashboard implements OnInit, AfterViewInit {
   }
 
   createCharts() {
+    if (this.responses.length === 0) {
+      console.log('⚠️ No data available for charts');
+      return;
+    }
+
     // Destroy existing charts
     if (this.scoreChart) {
       this.scoreChart.destroy();
@@ -529,7 +440,7 @@ export class Dashboard implements OnInit, AfterViewInit {
         plugins: {
           title: {
             display: true,
-            text: 'Score Distribution Analysis'
+            text: 'Score Distribution Analysis (Production Data)'
           }
         }
       }
@@ -564,7 +475,7 @@ export class Dashboard implements OnInit, AfterViewInit {
           },
           title: {
             display: true,
-            text: 'Pass/Fail Distribution'
+            text: 'Pass/Fail Distribution (Production Data)'
           }
         }
       }
@@ -589,7 +500,7 @@ export class Dashboard implements OnInit, AfterViewInit {
 
   downloadCertificate(response: TestResponse) {
     if (response.score >= 6) {
-      alert(`Generating certificate for ${response.fullName}`);
+      alert(`Generating certificate for ${response.fullName} (Score: ${response.score}/10)`);
       // TODO: Implement actual certificate generation
     } else {
       alert(`${response.fullName} did not pass the test (Score: ${response.score}/10). Certificate not available.`);
@@ -597,12 +508,17 @@ export class Dashboard implements OnInit, AfterViewInit {
   }
 
   exportData() {
+    if (this.filteredResponses.length === 0) {
+      alert('No data available to export. Please ensure you are connected to the backend.');
+      return;
+    }
+
     const csvContent = this.generateCSV();
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `mechanical-trainee-test-results-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `krishna-maruti-test-results-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   }
@@ -689,25 +605,63 @@ export class Dashboard implements OnInit, AfterViewInit {
 
   // Status indicators
   getConnectionStatus(): string {
-    if (this.isRetrying) {
-      return 'Waking up server...';
-    }
-    if (this.isLoading && this.connectionAttempts > 0) {
-      return `Connecting... (${this.connectionAttempts}/${this.maxRetries})`;
-    }
-    if (this.apiConnected) {
-      return 'Connected';
-    }
-    return 'Using sample data';
+    return this.serverStatus;
   }
 
   getConnectionClass(): string {
     if (this.isRetrying || (this.isLoading && this.connectionAttempts > 0)) {
       return 'text-yellow-600';
     }
-    if (this.apiConnected) {
+    if (this.apiConnected && this.responses.length > 0) {
       return 'text-green-600';
     }
+    if (!this.apiConnected) {
+      return 'text-red-600';
+    }
     return 'text-orange-600';
+  }
+
+  // Backend information methods
+  getBackendInfo(): any {
+    return this.backendMetadata || {};
+  }
+
+  getCacheStatus(): string {
+    return this.backendMetadata?.cacheStatus || 'Unknown';
+  }
+
+  getRenderUrl(): string {
+    return this.backendMetadata?.renderUrl || this.API_URL;
+  }
+
+  getLastUpdateInfo(): string {
+    if (this.lastUpdateTime) {
+      const timeDiff = Math.floor((Date.now() - this.lastUpdateTime.getTime()) / 1000);
+      if (timeDiff < 60) return `${timeDiff} seconds ago`;
+      if (timeDiff < 3600) return `${Math.floor(timeDiff / 60)} minutes ago`;
+      return `${Math.floor(timeDiff / 3600)} hours ago`;
+    }
+    return 'Never';
+  }
+
+  // Connection test method
+  async testConnection() {
+    try {
+      this.serverStatus = 'Testing connection...';
+      const response = await this.http.get<ApiResponse>(`${this.API_URL}/test-connection`).pipe(
+        timeout(30000),
+        retry(1)
+      ).toPromise();
+      
+      if (response?.success) {
+        this.serverStatus = 'Connection test successful';
+        alert('✅ Connection to production backend successful!');
+      } else {
+        throw new Error('Connection test failed');
+      }
+    } catch (error) {
+      this.serverStatus = 'Connection test failed';
+      alert('❌ Connection test failed. Please check your internet connection.');
+    }
   }
 }
