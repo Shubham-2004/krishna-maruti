@@ -8,21 +8,21 @@
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
             <p class="text-sm text-gray-600">Mechanical Employer Trainee Test Results</p>
-            <div class="flex items-center mt-1">
-              <div class="w-2 h-2 rounded-full mr-2" [ngClass]="{
-                'bg-green-500': apiConnected,
-                'bg-red-500': !apiConnected
-              }"></div>
-              <span class="text-xs" [ngClass]="{
-                'text-green-600': apiConnected,
-                'text-red-600': !apiConnected
-              }">
-                {{ apiConnected ? 'Connected to backend' : 'Backend disconnected' }}
-              </span>
-              <span *ngIf="lastUpdateTime" class="text-xs text-gray-500 ml-2">
-                Last updated: {{ lastUpdateTime | date:'short' }}
-              </span>
-            </div>
+            <!-- Update the connection status section in the header -->
+<div class="flex items-center mt-1 flex-wrap">
+  <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0" [ngClass]="{
+    'bg-green-500': apiConnected && !isRetrying,
+    'bg-yellow-500': isRetrying || (isLoading && connectionAttempts > 0),
+    'bg-orange-500': !apiConnected && !isLoading,
+    'bg-red-500': !apiConnected && connectionAttempts >= maxRetries
+  }"></div>
+  <span class="text-xs mr-2" [ngClass]="getConnectionClass()">
+    {{ getConnectionStatus() }}
+  </span>
+  <span *ngIf="lastUpdateTime" class="text-xs text-gray-500 truncate">
+    {{ lastUpdateTime | date:'short' }}
+  </span>
+</div>
           </div>
         </div>
         <div class="flex items-center space-x-4">
