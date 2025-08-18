@@ -1,0 +1,466 @@
+<div class="min-h-screen bg-gray-100">
+  <!-- Header -->
+  <header class="bg-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div class="flex items-center">
+          <img src="https://img.etb2bimg.com/files/retail_files/company/logo-krishna-maruti-ltd.jpg" alt="Krishna Logo" class="h-12 w-12 object-contain mr-4">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p class="text-sm text-gray-600">Mechanical Employer Trainee Test Results</p>
+            <div class="flex items-center mt-1">
+              <div class="w-2 h-2 rounded-full mr-2" [ngClass]="{
+                'bg-green-500': apiConnected,
+                'bg-red-500': !apiConnected
+              }"></div>
+              <span class="text-xs" [ngClass]="{
+                'text-green-600': apiConnected,
+                'text-red-600': !apiConnected
+              }">
+                {{ apiConnected ? 'Connected to backend' : 'Backend disconnected' }}
+              </span>
+              <span *ngIf="lastUpdateTime" class="text-xs text-gray-500 ml-2">
+                Last updated: {{ lastUpdateTime | date:'short' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- Loading Indicator -->
+          <div *ngIf="isLoading" class="flex items-center text-blue-600">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading data from backend...
+          </div>
+          
+          <button (click)="refreshData()" [disabled]="isLoading" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 disabled:opacity-50">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+          </button>
+          <button (click)="exportData()" [disabled]="isLoading || filteredResponses.length === 0" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 disabled:opacity-50">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-600">{{ errorMessage }}</p>
+          <p class="text-xs text-yellow-500 mt-1">Using sample data for demonstration</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-900">Total Responses</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ totalResponses }}</p>
+            <p class="text-xs text-gray-500">Form submissions</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-900">Passed</h3>
+            <p class="text-3xl font-bold text-green-600">{{ passedCount }}</p>
+            <p class="text-xs text-gray-500">≥6/10 score ({{ getPassPercentage() }}%)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-900">Failed</h3>
+            <p class="text-3xl font-bold text-red-600">{{ failedCount }}</p>
+            <p class="text-xs text-gray-500">&lt;6/10 score ({{ 100 - getPassPercentage() }}%)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-900">Average Score</h3>
+            <p class="text-3xl font-bold text-yellow-600">{{ averageScore.toFixed(1) }}/10</p>
+            <p class="text-xs text-gray-500">{{ (averageScore * 10).toFixed(0) }}% average</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Score Distribution Chart -->
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Score Distribution</h3>
+        <div class="h-64">
+          <canvas #scoreChart></canvas>
+        </div>
+      </div>
+
+      <!-- Pass/Fail Pie Chart -->
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Pass/Fail Analysis</h3>
+        <div class="h-64 flex items-center justify-center">
+          <canvas #passFailChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Department Analysis -->
+    <div *ngIf="departmentStats.length > 0" class="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <h3 class="text-xl font-semibold text-gray-900 mb-4">Department-wise Performance</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div *ngFor="let dept of departmentStats" class="bg-gray-50 p-4 rounded-lg border">
+          <h4 class="font-medium text-gray-900 mb-2">{{ dept.name }}</h4>
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Total Candidates:</span>
+              <span class="font-medium">{{ dept.totalCandidates }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Passed:</span>
+              <span class="font-medium text-green-600">{{ dept.passed }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Failed:</span>
+              <span class="font-medium text-red-600">{{ dept.failed }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Average Score:</span>
+              <span class="font-medium text-yellow-600">{{ dept.averageScore }}/10</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div class="bg-green-500 h-2 rounded-full" [style.width.%]="(dept.passed / dept.totalCandidates) * 100"></div>
+            </div>
+            <div class="text-xs text-gray-500 text-center">
+              {{ ((dept.passed / dept.totalCandidates) * 100).toFixed(0) }}% pass rate
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <h3 class="text-xl font-semibold text-gray-900 mb-4">Filters</h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
+          <select [(ngModel)]="selectedDepartment" (change)="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Departments</option>
+            <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Score Range</label>
+          <select [(ngModel)]="selectedScoreRange" (change)="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Scores</option>
+            <option value="0-3">0-3 (Poor)</option>
+            <option value="4-5">4-5 (Below Average)</option>
+            <option value="6-7">6-7 (Average)</option>
+            <option value="8-10">8-10 (Excellent)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <select [(ngModel)]="selectedStatus" (change)="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <input type="text" [(ngModel)]="searchTerm" (input)="applyFilters()" placeholder="Search by name or ID" 
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+    </div>
+
+    <!-- No Data Message -->
+    <div *ngIf="!isLoading && filteredResponses.length === 0" class="bg-white rounded-xl shadow-lg p-8 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No test results found</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        {{ totalResponses === 0 ? 'No form responses have been submitted yet.' : 'No results match your current filters.' }}
+      </p>
+      <div class="mt-6">
+        <button (click)="refreshData()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+          <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div *ngIf="!isLoading && filteredResponses.length > 0" class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xl font-semibold text-gray-900">Test Results</h3>
+          <div class="text-sm text-gray-600">
+            Showing {{ startIndex + 1 }} to {{ endIndex }} of {{ filteredResponses.length }} results
+          </div>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOB</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let response of paginatedResponses; let i = index" 
+                class="hover:bg-gray-50 transition duration-150" 
+                [ngClass]="{'bg-green-50': response.score >= 6, 'bg-red-50': response.score < 6}">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ response.fullName }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ response.employeeId }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ response.department }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ response.dateOfBirth }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-semibold" [ngClass]="{
+                  'text-red-600': response.score < 6,
+                  'text-green-600': response.score >= 6
+                }">{{ response.score }}/10</div>
+                <div class="text-xs text-gray-500">{{ (response.score / 10 * 100).toFixed(0) }}%</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" [ngClass]="{
+                  'bg-green-100 text-green-800': response.score >= 6,
+                  'bg-red-100 text-red-800': response.score < 6
+                }">
+                  {{ response.score >= 6 ? 'Passed' : 'Failed' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ response.submissionDate | date:'short' }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button (click)="viewDetails(response)" class="text-blue-600 hover:text-blue-900 mr-3 transition duration-150">
+                  View Details
+                </button>
+                <button (click)="downloadCertificate(response)" [disabled]="response.score < 6" 
+                        class="text-green-600 hover:text-green-900 disabled:text-gray-400 disabled:cursor-not-allowed transition duration-150">
+                  Certificate
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Enhanced Pagination -->
+      <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+          <button (click)="previousPage()" [disabled]="currentPage === 1" 
+                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Previous
+          </button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" 
+                  class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ startIndex + 1 }}</span> to <span class="font-medium">{{ endIndex }}</span> of
+              <span class="font-medium">{{ filteredResponses.length }}</span> results
+            </p>
+          </div>
+          <div *ngIf="totalPages > 1">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button (click)="previousPage()" [disabled]="currentPage === 1" 
+                      class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Previous</span>
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+              <button *ngFor="let page of getPageNumbers()" (click)="goToPage(page)" 
+                      [ngClass]="{
+                        'bg-blue-50 border-blue-500 text-blue-600 z-10': page === currentPage,
+                        'bg-white border-gray-300 text-gray-500 hover:bg-gray-50': page !== currentPage
+                      }"
+                      class="relative inline-flex items-center px-4 py-2 border text-sm font-medium transition duration-150">
+                {{ page }}
+              </button>
+              <button (click)="nextPage()" [disabled]="currentPage === totalPages" 
+                      class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Next</span>
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Enhanced Modal for Detailed View -->
+<div *ngIf="selectedResponse" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" (click)="closeDetails()">
+  <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white" (click)="$event.stopPropagation()">
+    <div class="mt-3">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-900">Detailed Test Results</h3>
+        <button (click)="closeDetails()" class="text-gray-400 hover:text-gray-600 transition duration-150">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="space-y-6">
+        <!-- Candidate Information -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-3">Candidate Information</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="font-medium text-gray-700">Name:</label>
+              <p class="text-gray-900">{{ selectedResponse.fullName }}</p>
+            </div>
+            <div>
+              <label class="font-medium text-gray-700">Employee ID:</label>
+              <p class="text-gray-900">{{ selectedResponse.employeeId }}</p>
+            </div>
+            <div>
+              <label class="font-medium text-gray-700">Department:</label>
+              <p class="text-gray-900">{{ selectedResponse.department }}</p>
+            </div>
+            <div>
+              <label class="font-medium text-gray-700">Date of Birth:</label>
+              <p class="text-gray-900">{{ selectedResponse.dateOfBirth }}</p>
+            </div>
+            <div>
+              <label class="font-medium text-gray-700">Submission Date:</label>
+              <p class="text-gray-900">{{ formatDate(selectedResponse.submissionDate) }}</p>
+            </div>
+            <div>
+              <label class="font-medium text-gray-700">Total Score:</label>
+              <p class="font-bold text-lg" [ngClass]="{
+                'text-red-600': selectedResponse.score < 6,
+                'text-green-600': selectedResponse.score >= 6
+              }">{{ selectedResponse.score }}/10 ({{ (selectedResponse.score / 10 * 100).toFixed(0) }}%)</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Question-wise Analysis -->
+        <div>
+          <h4 class="font-semibold text-gray-900 mb-3">Question-wise Analysis</h4>
+          <div class="space-y-3 max-h-64 overflow-y-auto">
+            <div *ngFor="let answer of selectedResponse.answers; let i = index" 
+                 class="flex items-start justify-between p-3 border rounded-lg hover:bg-gray-50 transition duration-150">
+              <div class="flex-1 mr-4">
+                <span class="text-sm font-medium text-gray-900">Q{{ i + 1 }}:</span>
+                <p class="text-sm text-gray-700 mt-1">{{ getQuestionText(i) }}</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  <strong>User Answer:</strong> {{ answer.selectedAnswer || 'No answer provided' }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  <strong>Correct Answer:</strong> {{ correctAnswers[i] || 'N/A' }}
+                </p>
+              </div>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0" [ngClass]="{
+                'bg-green-100 text-green-800': answer.isCorrect,
+                'bg-red-100 text-red-800': !answer.isCorrect
+              }">
+                {{ answer.isCorrect ? 'Correct' : 'Wrong' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button (click)="closeDetails()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150">
+            Close
+          </button>
+          <button (click)="downloadCertificate(selectedResponse)" [disabled]="selectedResponse.score < 6" 
+                  class="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition duration-150">
+            Download Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

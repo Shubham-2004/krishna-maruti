@@ -1,0 +1,184 @@
+<div class="min-h-screen bg-white">
+  <!-- Responsive Header -->
+  <header class="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 space-y-4 sm:space-y-0">
+    <div class="text-blue-600 text-center sm:text-left">
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">Krishna Group</h1>
+      <div class="w-16 sm:w-20 h-1 bg-red-500 mt-2 mx-auto sm:mx-0"></div>
+    </div>
+    <div class="flex items-center">
+      <img src="https://img.etb2bimg.com/files/retail_files/company/logo-krishna-maruti-ltd.jpg" 
+           alt="Krishna Logo" 
+           class="w-16 h-16 sm:w-20 sm:h-20 object-contain">
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <div class="flex flex-col lg:flex-row min-h-screen">
+    
+    <!-- Left Section - Company Information -->
+    <div class="w-full lg:w-1/2 bg-gradient-to-r from-blue-600 to-blue-900 order-2 lg:order-1">
+      <div class="text-white px-4 sm:px-6 py-8 sm:py-12">
+        <div class="max-w-2xl mx-auto lg:mx-0">
+          <!-- Company Description -->
+          <div class="space-y-4 sm:space-y-6 mb-8">
+            <p class="text-sm sm:text-base lg:text-lg leading-relaxed">
+              The Foundation of Krishna Group was laid down by Mr. Ashok Kapur in 1994 by setting up its first manufacturing facility in Narsinghpur, Gurugram. Krishna Group has diversified business interests in Auto Component manufacturing, Real Estate, Media and Travel related services.
+            </p>
+            
+            <p class="text-sm sm:text-base lg:text-lg leading-relaxed">
+              Mr. Ashok Kapur's son, Mr. Sunandan Kapur was inducted in the Group in FY 2001-02. He worked closely with his father till 2006 supporting him in the growth of KML (Interiors Division). Since 2006, he has been independently managing SKH (Metals Division) and has led SKH to a phenomenal growth since then.
+            </p>
+            
+            <p class="text-sm sm:text-base lg:text-lg leading-relaxed font-semibold bg-blue-800 bg-opacity-50 p-3 sm:p-4 rounded-lg">
+              The flagship business of Krishna Group, the Auto Component business revenue crossed USD 1.17 Billion in FY 2022-2023.
+            </p>
+          </div>
+
+          <!-- Key Statistics (Mobile Only) -->
+          <div class="block lg:hidden mb-6">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-blue-800 bg-opacity-50 p-3 rounded-lg text-center">
+                <div class="text-lg sm:text-xl font-bold">1994</div>
+                <div class="text-xs sm:text-sm">Founded</div>
+              </div>
+              <div class="bg-blue-800 bg-opacity-50 p-3 rounded-lg text-center">
+                <div class="text-lg sm:text-xl font-bold">$1.17B</div>
+                <div class="text-xs sm:text-sm">Revenue</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Get Started Button -->
+          <div class="text-center lg:text-left">
+            <button routerLink="/login" 
+                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg text-base sm:text-lg transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg w-full sm:w-auto">
+              Get Started
+            </button>
+          </div>
+
+          <!-- Additional Info for Desktop -->
+          <div class="hidden lg:block mt-8 pt-6 border-t border-blue-400 border-opacity-30">
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div class="text-2xl font-bold">29+</div>
+                <div class="text-sm opacity-90">Years Experience</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">4</div>
+                <div class="text-sm opacity-90">Business Divisions</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold">Global</div>
+                <div class="text-sm opacity-90">Presence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section - Business Divisions -->
+    <div class="w-full lg:w-1/2 bg-gray-50 order-1 lg:order-2">
+      <div class="p-4 sm:p-6 h-full">
+        <!-- Section Title -->
+        <div class="text-center mb-6 lg:mb-8">
+          <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-2">Our Business Divisions</h2>
+          <div class="w-16 h-1 bg-red-500 mx-auto"></div>
+        </div>
+
+        <!-- Business Divisions Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          
+          <!-- SKH Metals Division -->
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="h-32 sm:h-40 w-full bg-gray-100 flex items-center justify-center p-2 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=200&fit=crop" 
+                   alt="Manufacturing Facility" 
+                   class="max-w-full max-h-full object-cover rounded transition-transform duration-300 hover:scale-105">
+            </div>
+            <div class="bg-red-600 text-white p-3 sm:p-4">
+              <h3 class="font-bold text-sm sm:text-base">SKH (Metals Division)</h3>
+              <p class="text-xs sm:text-sm opacity-90 mt-1">Precision metal components</p>
+            </div>
+          </div>
+
+          <!-- KML Interiors Division -->
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="h-32 sm:h-40 w-full bg-gray-100 flex items-center justify-center p-2 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=200&fit=crop" 
+                   alt="Interiors Division" 
+                   class="max-w-full max-h-full object-cover rounded transition-transform duration-300 hover:scale-105">
+            </div>
+            <div class="bg-red-600 text-white p-3 sm:p-4">
+              <h3 class="font-bold text-sm sm:text-base">KML (Interiors Division)</h3>
+              <p class="text-xs sm:text-sm opacity-90 mt-1">Automotive interiors</p>
+            </div>
+          </div>
+
+          <!-- KML Seat Division -->
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="h-32 sm:h-40 w-full bg-gray-100 flex items-center justify-center p-2 overflow-hidden">
+              <img src="https://krishnagroup.co.in/images/id.png" 
+                   alt="Seat Division" 
+                   class="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105">
+            </div>
+            <div class="bg-red-600 text-white p-3 sm:p-4">
+              <h3 class="font-bold text-sm sm:text-base">KML (Seat Division)</h3>
+              <p class="text-xs sm:text-sm opacity-90 mt-1">Automotive seating solutions</p>
+            </div>
+          </div>
+
+          <!-- SKH Media -->
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="h-32 sm:h-40 w-full bg-gray-100 flex items-center justify-center p-2 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop" 
+                   alt="Media Platform" 
+                   class="max-w-full max-h-full object-cover rounded transition-transform duration-300 hover:scale-105">
+            </div>
+            <div class="bg-red-600 text-white p-3 sm:p-4">
+              <h3 class="font-bold text-sm sm:text-base">SKH Media</h3>
+              <p class="text-xs sm:text-sm opacity-90 mt-1">Digital media solutions</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Content for Mobile -->
+        <div class="block lg:hidden mt-6 pt-6 border-t border-gray-200">
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Why Choose Krishna Group?</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="bg-white p-3 rounded-lg shadow border">
+                <div class="text-blue-600 font-bold">Quality</div>
+                <div class="text-xs text-gray-600">ISO certified processes</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow border">
+                <div class="text-blue-600 font-bold">Innovation</div>
+                <div class="text-xs text-gray-600">Latest technology</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow border">
+                <div class="text-blue-600 font-bold">Trust</div>
+                <div class="text-xs text-gray-600">29+ years legacy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Footer -->
+  <footer class="block lg:hidden bg-gray-800 text-white p-4">
+    <div class="text-center">
+      <p class="text-sm mb-2">© 2024 Krishna Group. All rights reserved.</p>
+      <div class="flex justify-center space-x-4 text-xs">
+        <span>Quality</span>
+        <span>•</span>
+        <span>Innovation</span>
+        <span>•</span>
+        <span>Excellence</span>
+      </div>
+    </div>
+  </footer>
+</div>
