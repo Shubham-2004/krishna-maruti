@@ -71,6 +71,8 @@ const corsOptions = {
 
 // Apply CORS middleware FIRST
 app.use(cors(corsOptions));
+app.use(cors());
+
 
 // Additional explicit CORS headers middleware
 app.use((req, res, next) => {
